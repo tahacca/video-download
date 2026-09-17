@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediaGrab Pro - Universal Media Downloader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .gradient-text-instagram {
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .platform-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .platform-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .platform-card.active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2));
+            border-color: #667eea;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .download-btn-instagram {
+            background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+        }
+
+        .download-btn-instagram:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(220, 39, 67, 0.4);
+        }
+
+        .input-field {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .float-animation {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(102, 126, 234, 0.6); }
+        }
+
+        .pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        .instagram-spinner {
+            border-top-color: #dc2743;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .result-box {
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .platform-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .instagram-modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 1px solid rgba(220, 39, 67, 0.3);
+        }
+    </style>
+</head>
+<body class="text-white overflow-x-hidden">
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Instagram Modal -->
+    <div id="instagramModal" class="modal-overlay">
+        <div class="instagram-modal-content rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold gradient-text-instagram">Instagram Downloader</h2>
+                <button onclick="closeInstagramModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex gap-2 mb-6 bg-black/30 p-1 rounded-xl">
+                <button onclick="switchInstaTab('reel')" id="tab-reel" class="insta-tab flex-1 py-2 px-4 rounded-lg font-medium transition-all">Reels</button>
+                <button onclick="switchInstaTab('post')" id="tab-post" class="insta-tab flex-1 py-2 px-4 rounded-lg font-medium transition-all">Posts</button>
+                <button onclick="switchInstaTab('story')" id="tab-story" class="insta-tab flex-1 py-2 px-4 rounded-lg font-medium transition-all">Stories</button>
+            </div>
+
+            <!-- Input Section -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Paste Instagram URL</label>
+                <div class="flex gap-2">
+                    <input type="text" id="instaUrl" placeholder="https://www.instagram.com/reel/..." class="input-field flex-1 px-4 py-3 rounded-xl text-white outline-none">
+                    <button onclick="pasteFromClipboard()" class="px-4 py-3 bg-white/10 rounded-xl hover:bg-white/20 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">💡 Tip: Open Instagram → Copy link of Reel/Post/Story → Paste here</p>
+            </div>
+
+            <!-- Quality Selection -->
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Download Quality</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="selectQuality(this, 'high')" class="quality-btn active-quality py-2 px-3 bg-gradient-to-r from-pink-500 to-purple-500 rounded-lg font-medium text-sm">HD</button>
+                    <button onclick="selectQuality(this, 'medium')" class="quality-btn py-2 px-3 bg-white/10 rounded-lg font-medium text-sm hover:bg-white/20">SD</button>
+                    <button onclick="selectQuality(this, 'audio')" class="quality-btn py-2 px-3 bg-white/10 rounded-lg font-medium text-sm hover:bg-white/20">Audio</button>
+                </div>
+            </div>
+
+            <!-- Download Button -->
+            <button onclick="startInstagramDownload()" class="download-btn-instagram w-full py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-2 pulse-glow">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Download Now
+            </button>
+
+            <!-- Status Box -->
+            <div id="instaStatusBox" class="mt-6 hidden">
+                <div class="bg-black/30 rounded-xl p-4 flex items-center gap-3">
+                    <div class="spinner instagram-spinner"></div>
+                    <div>
+                        <p class="font-medium">Processing...</p>
+                        <p class="text-sm text-gray-400" id="instaProgress">Fetching media...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Box -->
+            <div id="instaResult" class="mt-6 hidden"></div>
+
+            <!-- Info Box -->
+            <div class="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
+                <p class="text-sm text-yellow-200">
+                    <strong>⚠️ Note:</strong> This is a demonstration. Direct Instagram downloads require server-side processing due to Instagram's security measures. In a real implementation, you would need to use a backend API service.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <header class="text-center mb-12">
+            <div class="inline-flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full mb-6">
+                <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                <span class="text-sm text-gray-300">All systems operational</span>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-bold mb-4">
+                <span class="gradient-text">MediaGrab</span> <span class="text-white">Pro</span>
+            </h1>
+            <p class="text-xl text-gray-300 max-w-2xl mx-auto">
+                Download videos, reels, stories, and posts from your favorite social media platforms — fast, free, and hassle-free.
+            </p>
+        </header>
+
+        <!-- Platform Selection -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold mb-6 text-center">Choose Your Platform</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- YouTube -->
+                <div onclick="selectPlatform('youtube')" class="platform-card glass-card rounded-2xl p-6 cursor-pointer text-center">
+                    <div class="platform-icon mx-auto mb-3 bg-red-500/20 rounded-xl">
+                        <svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                    </div>
+                    <p class="font-medium">YouTube</p>
+                </div>
+
+                <!-- TikTok -->
+                <div onclick="selectPlatform('tiktok')" class="platform-card glass-card rounded-2xl p-6 cursor-pointer text-center">
+                    <div class="platform-icon mx-auto mb-3 bg-pink-500/20 rounded-xl">
+                        <svg class="w-6 h-6 text-pink-400" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.8 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/></svg>
+                    </div>
+                    <p class="font-medium">TikTok</p>
+                </div>
+
+                <!-- Twitter/X -->
+                <div onclick="selectPlatform('twitter')" class="platform-card glass-card rounded-2xl p-6 cursor-pointer text-center">
+                    <div class="platform-icon mx-auto mb-3 bg-blue-500/20 rounded-xl">
+                        <svg class="w-6 h-6 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                    </div>
+                    <p class="font-medium">Twitter/X</p>
+                </div>
+
+                <!-- Instagram (Featured) -->
+                <div onclick="openInstagramModal()" class="platform-card glass-card rounded-2xl p-6 cursor-pointer text-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-br from-yellow-500/10 via-pink-500/10 to-purple-500/10"></div>
+                    <div class="relative">
+                        <div class="platform-icon mx-auto mb-3 bg-gradient-to-br from-yellow-500/30 via-pink-500/30 to-purple-500/30 rounded-xl">
+                            <svg class="w-6 h-6 text-pink-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                        </div>
+                        <p class="font-medium gradient-text-instagram">Instagram</p>
+                        <span class="text-xs text-yellow-400">⭐ Featured</span>
+                    </div>
+                </div>
+
+                <!-- Facebook -->
+                <div onclick="selectPlatform('facebook')" class="platform-card glass-card rounded-2xl p-6 cursor-pointer text-center">
+                    <div class="platform-icon mx-auto mb-3 bg-blue-600/20 rounded-xl">
+                        <svg class="w-6 h-6 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                    </div>
+                    <p class="font-medium">Facebook</p>
+                </div>
+
+                <!-- Pinterest -->
+                <div onclick="selectPlatform('pinterest')" class="platform-card glass-card rounded-2xl p-6 cursor-pointer text-center">
+                    <div class="platform-icon mx-auto mb-3 bg-red-600/20 rounded-xl">
+                        <svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.162-.105-.949-.199-2.403.041-3.439.219-.937 1.406-5.957 1.406-5.957s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.099.12.112.225.085.345-.09.375-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.354-.629-2.758-1.379l-.749 2.848c-.269 1.045-1.004 2.352-1.498 3.146 1.123.345 2.306.535 3.55.535 6.607 0 11.985-5.365 11.985-11.987C23.97 5.39 18.592.026 11.985.026L12.017 0z"/></svg>
+                    </div>
+                    <p class="font-medium">Pinterest</p>
+                </div>
+
+                <!-- Vimeo -->
+                <div onclick="selectPlatform('vimeo')" class="platform-card glass-card rounded-2xl p-6 cursor-pointer text-center">
+                    <div class="platform-icon mx-auto mb-3 bg-cyan-500/20 rounded-xl">
+                        <svg class="w-6 h-6 text-cyan-400" fill="currentColor" viewBox="0 0 24 24"><path d="M23.977 6.416c-.105 2.338-1.739 5.543-4.894 9.609-3.268 4.247-6.026 6.37-8.29 6.37-1.409 0-2.578-1.294-3.553-3.881L5.322 11.4C4.603 8.816 3.834 7.522 3.01 7.522c-.179 0-.806.378-1.881 1.132L0 7.197a315.065 315.065 0 003.501-3.128C5.08 2.701 6.266 1.984 7.055 1.91c1.867-.18 3.016 1.1 3.447 3.838.465 2.953.789 4.789.971 5.507.539 2.45 1.131 3.674 1.776 3.674.502 0 1.256-.796 2.265-2.385 1.004-1.589 1.54-2.797 1.612-3.628.144-1.371-.395-2.061-1.614-2.061-.574 0-1.167.121-1.777.391 1.186-3.868 3.434-5.757 6.762-5.637 2.473.06 3.628 1.664 3.493 4.797l-.013.01z"/></svg>
+                    </div>
+                    <p class="font-medium">Vimeo</p>
+                </div>
+
+                <!-- Reddit -->
+                <div onclick="selectPlatform('reddit')" class="platform-card glass-card rounded-2xl p-6 cursor-pointer text-center">
+                    <div class="platform-icon mx-auto mb-3 bg-orange-500/20 rounded-xl">
+                        <svg class="w-6 h-6 text-orange-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.236-2.612 4.05-5.832 4.05-3.218 0-5.83-1.814-5.83-4.05 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg>
+                    </div>
+                    <p class="font-medium">Reddit</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Downloader Section -->
+        <div id="mainSection" class="glass-card rounded-3xl p-8 md:p-12 mb-8">
+            <!-- Selected Platform Display -->
+            <div id="selectedPlatformDisplay" class="text-center mb-6 hidden">
+                <div class="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full border border-white/10">
+                    <span id="platformEmoji" class="text-2xl"></span>
+                    <span class="font-semibold" id="platformName">YouTube</span>
+                </div>
+            </div>
+
+            <h2 class="text-3xl font-bold text-center mb-2">Paste Media URL</h2>
+            <p class="text-gray-400 text-center mb-8">Works with videos, posts, stories, and reels</p>
+
+            <!-- URL Input -->
+            <div class="max-w-3xl mx-auto mb-6">
+                <div class="flex flex-col md:flex-row gap-3">
+                    <input type="text" id="mediaUrl" placeholder="https://..." class="input-field flex-1 px-6 py-4 rounded-xl text-white outline-none text-lg">
+                    <button onclick="pasteUrl()" class="px-6 py-4 bg-white/10 rounded-xl hover:bg-white/20 transition font-medium flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        Paste
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Examples -->
+            <div class="max-w-3xl mx-auto mb-8">
+                <p class="text-sm text-gray-400 mb-3 text-center">Quick examples (click to use):</p>
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <button onclick="useExample('https://www.youtube.com/watch?v=dQw4w9WgXcQ')" class="text-xs px-3 py-2 bg-white/5 rounded-lg hover:bg-white/10 transition">YouTube Sample</button>
+                    <button onclick="useExample('https://www.tiktok.com/@user/video/123')" class="text-xs px-3 py-2 bg-white/5 rounded-lg hover:bg-white/10 transition">TikTok Sample</button>
+                    <button onclick="useExample('https://twitter.com/user/status/123')" class="text-xs px-3 py-2 bg-white/5 rounded-lg hover:bg-white/10 transition">Twitter Sample</button>
+                    <button onclick="openInstagramModal()" class="text-xs px-3 py-2 bg-gradient-to-r from-pink-500/20 to-purple-500/20 rounded-lg hover:from-pink-500/30 hover:to-purple-500/30 transition border border-pink-500/30">Instagram Sample</button>
+                </div>
+            </div>
+
+            <!-- Download Button -->
+            <div class="max-w-3xl mx-auto">
+                <button onclick="startDownload()" class="download-btn w-full py-4 rounded-xl font-semibold text-lg flex items-center justify-center gap-2 pulse-glow">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Fetch & Download
+                </button>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="hidden mt-8 max-w-3xl mx-auto">
+                <div class="bg-black/30 rounded-2xl p-6 flex items-center gap-4">
+                    <div class="spinner"></div>
+                    <div class="flex-1">
+                        <p class="font-medium">Processing your request...</p>
+                        <p class="text-sm text-gray-400" id="progressText">Analyzing URL...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result -->
+            <div id="resultBox" class="hidden mt-8 max-w-3xl mx-auto"></div>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="glass-card rounded-2xl p-6 text-center">
+                <div class="text-3xl font-bold gradient-text">8+</div>
+                <div class="text-sm text-gray-400 mt-1">Platforms</div>
+            </div>
+            <div class="glass-card rounded-2xl p-6 text-center">
+                <div class="text-3xl font-bold gradient-text">4K</div>
+                <div class="text-sm text-gray-400 mt-1">Max Quality</div>
+            </div>
+            <div class="glass-card rounded-2xl p-6 text-center">
+                <div class="text-3xl font-bold gradient-text">∞</div>
+                <div class="text-sm text-gray-400 mt-1">Free Downloads</div>
+            </div>
+            <div class="glass-card rounded-2xl p-6 text-center">
+                <div class="text-3xl font-bold gradient-text">100%</div>
+                <div class="text-sm text-gray-400 mt-1">Safe & Secure</div>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="glass-card rounded-3xl p-8 mb-8">
+            <h3 class="text-2xl font-bold text-center mb-8">Why Choose MediaGrab Pro?</h3>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <h4 class="font-semibold mb-2">Lightning Fast</h4>
+                    <p class="text-sm text-gray-400">Downloads start in seconds with our optimized servers</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-gradient-to-br from-pink-500 to-red-500 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    </div>
+                    <h4 class="font-semibold mb-2">Secure & Private</h4>
+                    <p class="text-sm text-gray-400">No login required, no data stored on our servers</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-teal-500 rounded-xl mx-auto mb-3 flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    </div>
+                    <h4 class="font-semibold mb-2">100% Free</h4>
+                    <p class="text-sm text-gray-400">No hidden fees, no premium plans, completely free</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-400 text-sm">
+            <p class="mb-2">© 2024 MediaGrab Pro. All rights reserved.</p>
+            <p class="text-xs">⚖️ Please respect content creators' rights. Only download content you have permission to download.</p>
+        </footer>
+    </div>
+
+    <script>
+        let currentPlatform = 'youtube';
+        let selectedQuality = 'high';
+        let currentInstaTab = 'reel';
+
+        const platforms = {
+            youtube: { emoji: '🎬', name: 'YouTube' },
+            tiktok: { emoji: '🎵', name: 'TikTok' },
+            twitter: { emoji: '🐦', name: 'Twitter/X' },
+            facebook: { emoji: '📘', name: 'Facebook' },
+            pinterest: { emoji: '📌', name: 'Pinterest' },
+            vimeo: { emoji: '🎥', name: 'Vimeo' },
+            reddit: { emoji: '🤖', name: 'Reddit' }
+        };
+
+        function selectPlatform(platform) {
+            if (platform === 'instagram') {
+                openInstagramModal();
+                return;
+            }
+            currentPlatform = platform;
+            document.querySelectorAll('.platform-card').forEach(card => card.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            document.getElementById('selectedPlatformDisplay').classList.remove('hidden');
+            document.getElementById('platformEmoji').textContent = platforms[platform].emoji;
+            document.getElementById('platformName').textContent = platforms[platform].name;
+            
+            showToast(`${platforms[platform].name} selected!`, 'info');
+        }
+
+        function openInstagramModal() {
+            document.getElementById('instagramModal').classList.add('active');
+            switchInstaTab('reel');
+        }
+
+        function closeInstagramModal() {
+            document.getElementById('instagramModal').classList.remove('active');
+            document.getElementById('instaResult').classList.add('hidden');
+            document.getElementById('instaStatusBox').classList.add('hidden');
+        }
+
+        function switchInstaTab(tab) {
+            currentInstaTab = tab;
+            document.querySelectorAll('.insta-tab').forEach(t => {
+                t.classList.remove('bg-gradient-to-r', 'from-pink-500', 'to-purple-500');
+                t.classList.add('bg-white/5');
+            });
+            document.getElementById(`tab-${tab}`).classList.remove('bg-white/5');
+            document.getElementById(`tab-${tab}`).classList.add('bg-gradient-to-r', 'from-pink-500', 'to-purple-500');
+        }
+
+        function selectQuality(btn, quality) {
+            selectedQuality = quality;
+            document.querySelectorAll('.quality-btn').forEach(b => {
+                b.classList.remove('bg-gradient-to-r', 'from-pink-500', 'to-purple-500');
+                b.classList.add('bg-white/10');
+            });
+            btn.classList.remove('bg-white/10');
+            btn.classList.add('bg-gradient-to-r', 'from-pink-500', 'to-purple-500');
+        }
+
+        async function pasteFromClipboard() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('instaUrl').value = text;
+                showToast('Pasted from clipboard!', 'success');
+            } catch (err) {
+                showToast('Please paste manually (Ctrl+V)', 'info');
+            }
+        }
+
+        async function pasteUrl() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('mediaUrl').value = text;
+                showToast('Pasted from clipboard!', 'success');
+            } catch (err) {
+                showToast('Please paste manually (Ctrl+V)', 'info');
+            }
+        }
+
+        function useExample(url) {
+            document.getElementById('mediaUrl').value = url;
+            showToast('Example URL loaded!', 'success');
+        }
+
+        function startDownload() {
+            const url = document.getElementById('mediaUrl').value.trim();
+            if (!url) {
+                showToast('Please enter a valid URL', 'error');
+                return;
+            }
+
+            const loadingState = document.getElementById('loadingState');
+            const resultBox = document.getElementById('resultBox');
+            
+            loadingState.classList.remove('hidden');
+            resultBox.classList.add('hidden');
+
+            const progressTexts = [
+                'Analyzing URL...',
+                'Fetching media information...',
+                'Processing video data...',
+                'Preparing download...',
+                'Almost done...'
+            ];
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                if (progress < progressTexts.length) {
+                    document.getElementById('progressText').textContent = progressTexts[progress];
+                    progress++;
+                }
+            }, 600);
+
+            setTimeout(() => {
+                clearInterval(interval);
+                loadingState.classList.add('hidden');
+                showResult(url);
+            }, 3500);
+        }
+
+        function showResult(url) {
+            const resultBox = document.getElementById('resultBox');
+            const platform = platforms[currentPlatform];
+            
+            resultBox.innerHTML = `
+                <div class="result-box bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-2xl p-6 border border-purple-500/30">
+                    <div class="flex items-start gap-4 mb-6">
+                        <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-3xl">
+                            ${platform.emoji}
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-xl font-bold mb-1">${platform.name} Media Ready</h3>
+                            <p class="text-sm text-gray-400 truncate">${url}</p>
+                        </div>
+                        <span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-medium">✓ Ready</span>
+                    </div>
+                    
+                    <div class="bg-black/30 rounded-xl p-4 mb-4">
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-400">Quality:</span>
+                                <span class="ml-2 font-medium">${selectedQuality.toUpperCase()}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Format:</span>
+                                <span class="ml-2 font-medium">MP4</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Size:</span>
+                                <span class="ml-2 font-medium">~12.5 MB</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Type:</span>
+                                <span class="ml-2 font-medium">Video</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button onclick="simulateDownload('${platform.name} - HD')" class="download-btn flex-1 py-3 rounded-xl font-semibold flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Download
+                        </button>
+                        <button onclick="showToast('Audio extraction not available in demo', 'info')" class="px-4 py-3 bg-white/10 rounded-xl hover:bg-white/20 transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+            resultBox.classList.remove('hidden');
+        }
+
+        function startInstagramDownload() {
+            const url = document.getElementById('instaUrl').value.trim();
+            if (!url) {
+                showToast('Please enter an Instagram URL', 'error');
+                return;
+            }
+
+            if (!url.includes('instagram.com')) {
+                showToast('Please enter a valid Instagram URL', 'error');
+                return;
+            }
+
+            const statusBox = document.getElementById('instaStatusBox');
+            const resultBox = document.getElementById('instaResult');
+            
+            statusBox.classList.remove('hidden');
+            resultBox.classList.add('hidden');
+
+            const progressTexts = [
+                'Connecting to Instagram...',
+                'Validating URL...',
+                `Fetching ${currentInstaTab}...`,
+                'Extracting media URL...',
+                'Preparing download...'
+            ];
+
+            let progress = 0;
+            const interval = setInterval(() => {
+                if (progress < progressTexts.length) {
+                    document.getElementById('instaProgress').textContent = progressTexts[progress];
+                    progress++;
+                }
+            }, 400);
+
+            setTimeout(() => {
+                clearInterval(interval);
+                statusBox.classList.add('hidden');
+                showInstagramResult(url);
+            }, 2500);
+        }
+
+        function showInstagramResult(url) {
+            const resultBox = document.getElementById('instaResult');
+            const contentTypes = {
+                reel: { emoji: '🎬', label: 'Reel', icon: '📱' },
+                post: { emoji: '📸', label: 'Post', icon: '🖼️' },
+                story: { emoji: '📖', label: 'Story', icon: '⭕' }
+            };
+            
+            const type = contentTypes[currentInstaTab];
+            
+            resultBox.innerHTML = `
+                <div class="result-box bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-2xl p-6 border border-pink-500/30">
+                    <div class="flex items-center justify-center mb-4">
+                        <div class="w-20 h-20 bg-gradient-to-br from-yellow-400 via-pink-500 to-purple-600 rounded-2xl flex items-center justify-center text-4xl shadow-2xl">
+                            ${type.icon}
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mb-4">
+                        <h3 class="text-xl font-bold mb-1 gradient-text-instagram">Instagram ${type.label}</h3>
+                        <p class="text-xs text-gray-400 truncate">${url}</p>
+                    </div>
+                    
+                    <div class="bg-black/30 rounded-xl p-4 mb-4">
+                        <div class="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                                <span class="text-gray-400">Type:</span>
+                                <span class="ml-2 font-medium">${type.label}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Quality:</span>
+                                <span class="ml-2 font-medium">${selectedQuality.toUpperCase()}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Format:</span>
+                                <span class="ml-2 font-medium">${currentInstaTab === 'reel' ? 'MP4' : 'JPG'}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Status:</span>
+                                <span class="ml-2 font-medium text-green-400">✓ Ready</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 mb-4">
+                        <p class="text-xs text-yellow-200">
+                            ℹ️ <strong>Demo Mode:</strong> Direct Instagram downloads aren't available in this demo.<br>
+                            <span class="text-gray-300">Please use Instagram's built-in download/save options when available, or download content you own.</span>
+                        </p>
+                    </div>
+
+                    <button onclick="simulateDownload('Instagram ' + '${type.label}')" class="download-btn-instagram w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Download ${type.label}
+                    </button>
+                </div>
+            `;
+            resultBox.classList.remove('hidden');
+        }
+
+        function simulateDownload(filename) {
+            showToast(`Download started: ${filename}`, 'success');
+        }
+
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            const colors = {
+                success: 'border-l-4 border-green-500',
+                error: 'border-l-4 border-red-500',
+                info: 'border-l-4 border-blue-500'
+            };
+            toast.className = `toast ${colors[type] || colors.info}`;
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Close modal on outside click
+        document.getElementById('instagramModal').addEventListener('click', function(e) {
+            if (e.target === this) closeInstagramModal();
+        });
+
+        // Initialize Instagram tab
+        switchInstaTab('reel');
+    </script>
+</body>
+</html>
